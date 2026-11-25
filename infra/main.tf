@@ -1,5 +1,5 @@
 # Infraestructura de ejemplo. No ejecutar terraform apply.
-# HALLAZGO INTENCIONAL: bucket S3 con configuración de acceso público.
+# Corregido: acceso público bloqueado y cifrado en reposo configurado.
 
 terraform {
   required_providers {
@@ -15,14 +15,25 @@ resource "aws_s3_bucket" "lab_data" {
 }
 
 resource "aws_s3_bucket_acl" "lab_data_acl" {
-  bucket = aws_s3_bucket.lab_data.id
-  acl    = "public-read"
+  bucket     = aws_s3_bucket.lab_data.id
+  acl        = "private"
+  depends_on = [aws_s3_bucket_public_access_block.lab_data]
 }
 
 resource "aws_s3_bucket_public_access_block" "lab_data" {
   bucket                  = aws_s3_bucket.lab_data.id
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "lab_data_encryption" {
+  bucket = aws_s3_bucket.lab_data.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
